@@ -6,8 +6,8 @@ CREATE TABLE movies (
     PRIMARY KEY (IMDB_key);
 );
 
-CREATE TABLE screening (
-    screening_id    TEXT,
+CREATE TABLE screenings (
+    screening_id    TEXT DEFAULT (lower(hex(randomblob(16)))),
     start_time      DATETIME,
     IMDB_key        TEXT REFERENCES movies (IMDB_key),
     theatre_name    TEXT REFERENCES theatres (theatre_name),
@@ -28,8 +28,8 @@ CREATE TABLE customers (
 );
 
 CREATE TABLE tickets (
-    ticket_id       TEXT,
-    screening_id    TEXT,
+    ticket_id       TEXT DEFAULT (lower(hex(randomblob(16)))),
+    screening_id    TEXT REFERENCES screenings (screening_id),
     username,       TEXT REFERENCES customers (username),
     PRIMARY KEY (ticket_id);
 );
