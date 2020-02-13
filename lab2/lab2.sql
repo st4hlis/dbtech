@@ -8,7 +8,7 @@ CREATE TABLE movies (
     movie_title  TEXT,
     year         INT,
     running_time TIME,
-    IMDB_key     TEXT DEFAULT (lower(hex(randomblob(16)))),
+    IMDB_key     TEXT DEFAULT (lower(hex(randomblob(6)))),
     PRIMARY KEY (IMDB_key)
 );
 
@@ -40,14 +40,21 @@ CREATE TABLE tickets (
     PRIMARY KEY (ticket_id)
 );
 
-INSERT INTO movies(movie_title, year, running_time) VALUES ("Titanic", 1998, "3:15");
-INSERT INTO movies(movie_title, year, running_time) VALUES ("Torkel i knipa", 2004, "1:28");
-INSERT INTO movies(movie_title, year, running_time) VALUES ("Fantastic mr Fox", 2009, "1:28");
-INSERT INTO movies(movie_title, year, running_time) VALUES ("The Matrix", 1999, "2:30");
+INSERT INTO movies(movie_title, year, running_time, IMDB_key) VALUES 
+        ("Titanic",          1998, "3:15", "tt0001"),
+        ("Torkel i knipa",   2004, "1:28", "tt0002"),
+        ("Fantastic mr Fox", 2009, "1:28", "tt0003"),
+        ("The Matrix",       1999, "2:30", "tt0004");
 
 
-INSERT 
-INTO    theatres (theatre_name, capacity)
-VALUES  ("Filmstaden Lund", 200),
+INSERT INTO theatres (theatre_name, capacity) VALUES  
+        ("Filmstaden Lund", 200),
         ("Rigoletto", 100),
-        ("Saga", 50);
+        ("Saga", 50)
+        ("Hasses asfalt och bio", 5);
+
+INSERT INTO screenings(theatre_name, start_time, IMDB_key) VALUES 
+        ("Saga",                    "2020-02-14 18:00", "tt0001"),
+        ("Rigoletto",               "2020-02-16 15:00", "tt0003"),
+        ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003");
+
