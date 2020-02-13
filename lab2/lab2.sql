@@ -50,7 +50,7 @@ INSERT INTO movies(movie_title, year, running_time, IMDB_key) VALUES
 INSERT INTO theatres (theatre_name, capacity) VALUES  
         ("Filmstaden Lund", 200),
         ("Rigoletto", 100),
-        ("Saga", 50)
+        ("Saga", 50),
         ("Hasses asfalt och bio", 5);
 
 INSERT INTO screenings(theatre_name, start_time, IMDB_key, screening_id) VALUES 
