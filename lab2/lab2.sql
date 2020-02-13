@@ -46,3 +46,8 @@ INSERT INTO movies(movie_title, year, running_time) VALUES ("Fantastic mr Fox", 
 INSERT INTO movies(movie_title, year, running_time) VALUES ("The Matrix", 1999, "2:30");
 
 
+INSERT 
+INTO    theatres (theatre_name, capacity)
+VALUES  ("Filmstaden Lund", 200),
+        ("Rigoletto", 100),
+        ("Saga", 50);
