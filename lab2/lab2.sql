@@ -53,13 +53,21 @@ INSERT INTO theatres (theatre_name, capacity) VALUES
         ("Saga", 50)
         ("Hasses asfalt och bio", 5);
 
-INSERT INTO screenings(theatre_name, start_time, IMDB_key) VALUES 
-        ("Saga",                    "2020-02-14 18:00", "tt0001"),
-        ("Rigoletto",               "2020-02-16 15:00", "tt0003"),
-        ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003");
+INSERT INTO screenings(theatre_name, start_time, IMDB_key, screening_id) VALUES 
+        ("Saga",                    "2020-02-14 18:00", "tt0001", "sc0001"),
+        ("Rigoletto",               "2020-02-16 15:00", "tt0003", "sc0002"),
+        ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003", "sc0003");
 
-INSERT INTO customers (username, full_name, password) 
-VALUES ("MrHaans", "Artur Lidstrom", "abc123"),
-       ("ByggareBob", "Erik Stålberg", "cba321"),
-       ("El_oso_panda", "Emanuel Eriksson", "hej123"),
-       ("Rotten_tomatoes", "Rutten Tomatsson", "tomater94");
+INSERT INTO customers (username, full_name, password) VALUES 
+        ("MrHaans",          "Artur Lidstrom",       "abc123"),
+        ("ByggareBob",       "Erik Stålberg",        "cba321"),
+        ("El_oso_panda",     "Emanuel Eriksson",     "hej123"),
+        ("Rotten_tomatoes",   "Rutten Tomatsson",    "tomater94");
+
+INSERT INTO tickets (screening_id, username) VALUES
+        ("sc0001", "MrHaans"),
+        ("sc0002", "ByggareBob"),
+        ("sc0003", "ByggareBob"),
+        ("sc0003", "El_oso_panda"),
+        ("sc0003", "Rotten_tomatoes"),
+        ("sc0003", "MrHaans");
