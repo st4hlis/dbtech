@@ -58,3 +58,8 @@ INSERT INTO screenings(theatre_name, start_time, IMDB_key) VALUES
         ("Rigoletto",               "2020-02-16 15:00", "tt0003"),
         ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003");
 
+INSERT INTO customers (username, full_name, password) 
+VALUES ("MrHaans", "Artur Lidstrom", "abc123"),
+       ("ByggareBob", "Erik Stålberg", "cba321"),
+       ("El_oso_panda", "Emanuel Eriksson", "hej123"),
+       ("Rotten_tomatoes", "Rutten Tomatsson", "tomater94");
