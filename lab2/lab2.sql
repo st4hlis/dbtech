@@ -40,4 +40,9 @@ CREATE TABLE tickets (
     PRIMARY KEY (ticket_id)
 );
 
---INSERT INTO movies VALUES ("Titanic", "1998", "")
+INSERT INTO movies(movie_title, year, running_time) VALUES ("Titanic", 1998, "3:15");
+INSERT INTO movies(movie_title, year, running_time) VALUES ("Torkel i knipa", 2004, "1:28");
+INSERT INTO movies(movie_title, year, running_time) VALUES ("Fantastic mr Fox", 2009, "1:28");
+INSERT INTO movies(movie_title, year, running_time) VALUES ("The Matrix", 1999, "2:30");
+
+
