@@ -51,3 +51,9 @@ INTO    theatres (theatre_name, capacity)
 VALUES  ("Filmstaden Lund", 200),
         ("Rigoletto", 100),
         ("Saga", 50);
+
+INSERT INTO customers (username, full_name, password) 
+VALUES ("MrHaans", "Artur Lidstrom", "abc123"),
+       ("ByggareBob", "Erik Stålberg", "cba321"),
+       ("El_oso_panda", "Emanuel Eriksson", "hej123"),
+       ("Rotten_tomatoes", "Rutten Tomatsson", "tomater94");
