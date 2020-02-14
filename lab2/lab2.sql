@@ -36,7 +36,7 @@ CREATE TABLE customers (
 CREATE TABLE tickets (
     ticket_id       TEXT DEFAULT (lower(hex(randomblob(16)))),
     screening_id    TEXT REFERENCES screenings (screening_id),
-    username,       TEXT REFERENCES customers (username),
+    username        TEXT REFERENCES customers (username),
     PRIMARY KEY (ticket_id)
 );
 
@@ -56,7 +56,8 @@ INSERT INTO theatres (theatre_name, capacity) VALUES
 INSERT INTO screenings(theatre_name, start_time, IMDB_key, screening_id) VALUES 
         ("Saga",                    "2020-02-14 18:00", "tt0001", "sc0001"),
         ("Rigoletto",               "2020-02-16 15:00", "tt0003", "sc0002"),
-        ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003", "sc0003");
+        ("Hasses asfalt och bio",   "2020-03-02 19:00", "tt0003", "sc0003"),
+        ("Saga",                    "2020-02-14 21:00", "tt0002", "sc0004");
 
 INSERT INTO customers (username, full_name, password) VALUES 
         ("MrHaans",          "Artur Lidstrom",       "abc123"),
