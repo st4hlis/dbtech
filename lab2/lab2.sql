@@ -14,10 +14,12 @@ CREATE TABLE movies (
 
 CREATE TABLE screenings (
     screening_id    TEXT DEFAULT (lower(hex(randomblob(16)))),
-    theatre_name    TEXT REFERENCES theatres (theatre_name),
+    theatre_name    TEXT,
     start_time      DATETIME,
-    IMDB_key        TEXT REFERENCES movies (IMDB_key),
-    PRIMARY KEY (screening_id)
+    IMDB_key        TEXT,
+    PRIMARY KEY (screening_id),
+    FOREIGN KEY (theatre_name) REFERENCES theatres(theatre_name),
+    FOREIGN KEY (IMDB_key) REFERENCES movies(IMDB_key)
 ); 
 
 CREATE TABLE theatres (
@@ -35,9 +37,11 @@ CREATE TABLE customers (
 
 CREATE TABLE tickets (
     ticket_id       TEXT DEFAULT (lower(hex(randomblob(16)))),
-    screening_id    TEXT REFERENCES screenings (screening_id),
-    username,       TEXT REFERENCES customers (username),
-    PRIMARY KEY (ticket_id)
+    screening_id    TEXT,
+    username        TEXT,
+    PRIMARY KEY (ticket_id),
+    FOREIGN KEY (screening_id) REFERENCES screenings(screening_id),
+    FOREIGN KEY (username) REFERENCES customers(username)
 );
 
 INSERT INTO movies(movie_title, year, running_time, IMDB_key) VALUES 
