@@ -4,19 +4,9 @@ import sqlite3
 connection = sqlite3.connect("movies.sqlite")
 app  = FastAPI()
 
-
-
-# Test stuff
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/items/{item_id}")
-async def read_item(item_id: int):
-    return {"item_id": item_id}
-
-# Lab stuff
+def hash(msg):
+    import hashlib
+    return hashlib.sha256(msg.encode('utf-8')).hexdigest()
 
 @app.get("/ping",status_code=200)
 async def ping():
@@ -35,9 +25,10 @@ async def reset_database():
 
             DROP TABLE IF EXISTS screenings;
             CREATE TABLE screenings (
-                screening_id    TEXT DEFAULT (lower(hex(randomblob(16)))),
+                screening_id    TEXT DEFAULT (lower(hex(randomblob(6)))),
                 theatre_name    TEXT,
-                start_time      DATETIME,
+                date            DATE,
+                time            TIME,
                 IMDB_key        TEXT,
                 PRIMARY KEY (screening_id),
                 FOREIGN KEY (theatre_name) REFERENCES theatres(theatre_name),
@@ -61,7 +52,7 @@ async def reset_database():
 
             DROP TABLE IF EXISTS tickets;
             CREATE TABLE tickets (
-                ticket_id       TEXT DEFAULT (lower(hex(randomblob(16)))),
+                ticket_id       TEXT DEFAULT (lower(hex(randomblob(6)))),
                 screening_id    TEXT,
                 username        TEXT,
                 PRIMARY KEY (ticket_id),
@@ -76,10 +67,14 @@ async def reset_database():
                     ("Birdman",               2014, "tt2562232");
 
 
-            INSERT INTO theatres (theatre_name, capacity) VALUES  
+            INSERT INTO theatres(theatre_name, capacity) VALUES  
                     ("Kino",     10),
                     ("Södran",   16),
                     ("Skandia", 100);
+
+            INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
+                    ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
+
             """
             
     statements = statements.split(";")
@@ -93,26 +88,13 @@ async def reset_database():
             INSERT INTO customers (username, full_name, password) VALUES 
                     ("alice",   "Alice",    ?),
                     ("bob",     "Bob",      ?);
-
             """, [hash("dobido"),hash("whatsinaname")])
-    return "OK"
-
-@app.get("/movies")
-async def movies():
-    cursor = connection.cursor()
     cursor.execute(
-        """
-        SELECT *
-        FROM   movies
-        """
-    )
-    print(cursor)
-    dictKeys = ["title", "year", "imdbKey"]
-    movies   = []
-    for row in cursor:
-        zipObj = zip(dictKeys, row)
-        movies.append(dict(zipObj))
-    return movies
+            """
+            INSERT INTO tickets(ticket_id, screening_id, username) VALUES
+                    ("tc1", "sc1", "bob")
+            """)
+    return "OK"
 
 @app.get("/movies/{imdbKey}")
 async def moviesByKey(imdbKey: str):
@@ -132,16 +114,22 @@ async def moviesByKey(imdbKey: str):
         movies.append(dict(zipObj))
     return movies
 
-@app.get("/movies")
-async def movies():
+@app.get("/movies/")
+async def movies(title: str = None, year: int = None, imdbKey: str = None):
+    whereAnd = {False: " WHERE ", True: " AND "}
+    whereUsed = False;
+    query = """
+            SELECT *
+            FROM   movies
+            """
+    if title   != None:
+        query += whereAnd[whereUsed] + "movie_title == '" + title     + "'"
+    if year    != None:
+        query += whereAnd[whereUsed] + "year == '"        + str(year) + "'"
+    if imdbKey != None:
+        query += whereAnd[whereUsed] + "IMDB_key == '"    + imdbKey   + "'"
     cursor = connection.cursor()
-    cursor.execute(
-        """
-        SELECT *
-        FROM   movies
-        """
-    )
-    print(cursor)
+    cursor.execute(query)
     dictKeys = ["title", "year", "imdbKey"]
     movies   = []
     for row in cursor:
@@ -149,9 +137,93 @@ async def movies():
         movies.append(dict(zipObj))
     return movies
 
+@app.post("/performances")
+async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        INSERT INTO screenings(theatre_name, date, time, IMDB_key) VALUES
+        (?, ?, ?, ?)
+        """,
+        [theatre, date, time, imdbKey]
+        )
+    return cursor
 
-def hash(msg):
-    import hashlib
-    return hashlib.sha256(msg.encode('utf-8')).hexdigest()
+@app.get("/performances/")
+async def getPerformances():
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT * 
+        FROM   screenings
+        """
+    )
+    dictKeys   = ["screeningId", "theatre", "date", "startTime", "imdbKey"]
+    screenings = []
+    for row in cursor:
+        zipObj = zip(dictKeys, row)
+        screenings.append(dict(zipObj))
+    for event in screenings:
+        cursor.execute(
+            """
+            SELECT capacity
+            FROM   theatres
+            WHERE  theatre_name == ?
+            """,
+            [event["theatre"]]
+        )
+        totalSeats = cursor.fetchone()
+        totalSeats = totalSeats[0]
+        freeSeats  = totalSeats - getFreeSeats(event["screeningId"])
+        event["freeSeats"] = freeSeats
+        cursor.execute(
+            """
+            SELECT movie_title, year
+            FROM   movies
+            WHERE  IMDB_key == ?
+            """,
+            [event["imdbKey"]]
+        )
+        res = cursor.fetchone()
+        event["title"] = res[0]
+        event["year"]  = res[1]
+    return screenings
+
+@app.get("/freeseats/{screeningId}")
+def getFreeSeats(screeningId: str):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT *
+        FROM   tickets
+        WHERE  screening_id == ?
+        """,
+        [screeningId]
+    )
+    return len(cursor.fetchall())
+
+@app.get("/tickets/")
+async def getTickets():
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT *
+        FROM   tickets
+        """
+    )
+    dictKeys = ["ticket_id", "screening_id", "username"]
+    tickets   = []
+    for row in cursor:
+        zipObj = zip(dictKeys, row)
+        tickets.append(dict(zipObj))
+    return tickets
+
+
+
+
+
+
+
+
 
 
