@@ -74,6 +74,7 @@ async def reset_database():
 
             INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
                     ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
+
             PRAGMA foreign_keys=ON;
 
             """
@@ -86,13 +87,14 @@ async def reset_database():
     cursor.execute(
             """
             INSERT INTO customers (username, full_name, password) VALUES 
+                    ("erik",    "Erik",     ?),
                     ("alice",   "Alice",    ?),
                     ("bob",     "Bob",      ?);
-            """, [hash("dobido"),hash("whatsinaname")])
+            """, [hash("hej"),hash("dobido"),hash("whatsinaname")])
     cursor.execute(
             """
             INSERT INTO tickets(ticket_id, screening_id, username) VALUES
-                    ("tc1", "sc1", "bob")
+                    ("tc1", "sc1", "erik")
             """)
     return "OK"
 
@@ -224,6 +226,43 @@ async def getTickets():
         zipObj = zip(dictKeys, row)
         tickets.append(dict(zipObj))
     return tickets
+
+@app.post("/tickets")
+async def postTickets(screening_id: str, user_id: str, password: str):
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT password
+            FROM customers
+            WHERE username = ?
+            """,
+            [user_id]
+            )
+
+        if hash(password) != cursor.fetchone()[0]: 
+            return "Wrong password"
+        
+
+        cursor.execute(
+            """
+            INSERT INTO tickets(screening_id, username) VALUES
+            (?, ?)
+            """,
+            [screening_id, user_id]
+            )
+
+        cursor.execute(
+            """
+            SELECT ticket_id
+            FROM   tickets
+            WHERE  rowid = last_insert_rowid();
+            """,
+        )
+        return "/tickets/" + str(cursor.fetchone()[0])
+    except sqlite3.Error:
+        return "No such movie or theater"
 
 
 
