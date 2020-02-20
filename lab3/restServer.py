@@ -75,6 +75,7 @@ async def reset_database():
             INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
                     ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
 
+                    PRAGMA foreign_keys=ON;
             """
             
     statements = statements.split(";")
@@ -96,6 +97,9 @@ async def reset_database():
             """)
     return "OK"
 
+
+
+
 @app.get("/movies/{imdbKey}")
 async def moviesByKey(imdbKey: str):
     cursor = connection.cursor()
@@ -114,20 +118,19 @@ async def moviesByKey(imdbKey: str):
         movies.append(dict(zipObj))
     return movies
 
-@app.get("/movies/")
+@app.get("/movies")
 async def movies(title: str = None, year: int = None, imdbKey: str = None):
     whereAnd = {False: " WHERE ", True: " AND "}
-    whereUsed = False;
-    query = """
-            SELECT *
-            FROM   movies
-            """
+    whereUsed = False
     if title   != None:
         query += whereAnd[whereUsed] + "movie_title == '" + title     + "'"
+        whereUsed = True
     if year    != None:
         query += whereAnd[whereUsed] + "year == '"        + str(year) + "'"
+        whereUsed = True
     if imdbKey != None:
         query += whereAnd[whereUsed] + "IMDB_key == '"    + imdbKey   + "'"
+        whereUsed = True
     cursor = connection.cursor()
     cursor.execute(query)
     dictKeys = ["title", "year", "imdbKey"]
