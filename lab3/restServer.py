@@ -116,17 +116,20 @@ async def moviesByKey(imdbKey: str):
 @app.get("/movies/")
 async def movies(title: str = None, year: int = None, imdbKey: str = None):
     whereAnd = {False: " WHERE ", True: " AND "}
-    whereUsed = False;
+    whereUsed = False
     query = """
             SELECT *
             FROM   movies
             """
     if title   != None:
         query += whereAnd[whereUsed] + "movie_title == '" + title     + "'"
+        whereUsed = True
     if year    != None:
         query += whereAnd[whereUsed] + "year == '"        + str(year) + "'"
+        whereUsed = True
     if imdbKey != None:
         query += whereAnd[whereUsed] + "IMDB_key == '"    + imdbKey   + "'"
+        whereUsed = True
     cursor = connection.cursor()
     cursor.execute(query)
     dictKeys = ["title", "year", "imdbKey"]
@@ -163,18 +166,7 @@ async def getPerformances():
         zipObj = zip(dictKeys, row)
         screenings.append(dict(zipObj))
     for event in screenings:
-        cursor.execute(
-            """
-            SELECT capacity
-            FROM   theatres
-            WHERE  theatre_name == ?
-            """,
-            [event["theatre"]]
-        )
-        totalSeats = cursor.fetchone()
-        totalSeats = totalSeats[0]
-        freeSeats  = totalSeats - getFreeSeats(event["screeningId"])
-        event["freeSeats"] = freeSeats
+        event["freeSeats"] = await getFreeSeats(event["screeningId"])
         cursor.execute(
             """
             SELECT movie_title, year
@@ -189,17 +181,21 @@ async def getPerformances():
     return screenings
 
 @app.get("/freeseats/{screeningId}")
-def getFreeSeats(screeningId: str):
+async def getFreeSeats(screeningId: str):
     cursor = connection.cursor()
     cursor.execute(
         """
-        SELECT *
-        FROM   tickets
+        SELECT capacity - count()
+        FROM   screenings
+        JOIN   theatres
+        USING  (theatre_name)
+        JOIN   tickets
+        USING  (screening_id)
         WHERE  screening_id == ?
         """,
         [screeningId]
     )
-    return len(cursor.fetchall())
+    return cursor.fetchone()[0]
 
 @app.get("/tickets/")
 async def getTickets():
