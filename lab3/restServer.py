@@ -80,7 +80,6 @@ async def reset_database():
     statements = statements.split(";")
     cursor     = connection.cursor()
     for statement in statements:
-        #print(statement+";")
         cursor.execute(statement+";")
         connection.commit()
     cursor.execute(
