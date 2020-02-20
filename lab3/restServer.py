@@ -74,6 +74,7 @@ async def reset_database():
 
             INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
                     ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
+            PRAGMA foreign_keys=ON;
 
                     PRAGMA foreign_keys=ON;
             """
@@ -81,7 +82,6 @@ async def reset_database():
     statements = statements.split(";")
     cursor     = connection.cursor()
     for statement in statements:
-        #print(statement+";")
         cursor.execute(statement+";")
         connection.commit()
     cursor.execute(
@@ -122,6 +122,10 @@ async def moviesByKey(imdbKey: str):
 async def movies(title: str = None, year: int = None, imdbKey: str = None):
     whereAnd = {False: " WHERE ", True: " AND "}
     whereUsed = False
+    query = """
+            SELECT *
+            FROM   movies
+            """
     if title   != None:
         query += whereAnd[whereUsed] + "movie_title == '" + title     + "'"
         whereUsed = True
@@ -142,15 +146,26 @@ async def movies(title: str = None, year: int = None, imdbKey: str = None):
 
 @app.post("/performances")
 async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-        INSERT INTO screenings(theatre_name, date, time, IMDB_key) VALUES
-        (?, ?, ?, ?)
-        """,
-        [theatre, date, time, imdbKey]
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO screenings(theatre_name, date, time, IMDB_key) VALUES
+            (?, ?, ?, ?)
+            """,
+            [theatre, date, time, imdbKey]
+            )
+
+        cursor.execute(
+            """
+            SELECT screening_id
+            FROM   screenings
+            WHERE  rowid = last_insert_rowid();
+            """,
         )
-    return cursor
+        return "/performances/" + str(cursor.fetchone()[0])
+    except sqlite3.Error:
+        return "No such movie or theater"
 
 @app.get("/performances/")
 async def getPerformances():
@@ -167,18 +182,7 @@ async def getPerformances():
         zipObj = zip(dictKeys, row)
         screenings.append(dict(zipObj))
     for event in screenings:
-        cursor.execute(
-            """
-            SELECT capacity
-            FROM   theatres
-            WHERE  theatre_name == ?
-            """,
-            [event["theatre"]]
-        )
-        totalSeats = cursor.fetchone()
-        totalSeats = totalSeats[0]
-        freeSeats  = totalSeats - getFreeSeats(event["screeningId"])
-        event["freeSeats"] = freeSeats
+        event["freeSeats"] = await getFreeSeats(event["screeningId"])
         cursor.execute(
             """
             SELECT movie_title, year
@@ -193,17 +197,21 @@ async def getPerformances():
     return screenings
 
 @app.get("/freeseats/{screeningId}")
-def getFreeSeats(screeningId: str):
+async def getFreeSeats(screeningId: str):
     cursor = connection.cursor()
     cursor.execute(
         """
-        SELECT *
-        FROM   tickets
+        SELECT capacity - count()
+        FROM   screenings
+        JOIN   theatres
+        USING  (theatre_name)
+        JOIN   tickets
+        USING  (screening_id)
         WHERE  screening_id == ?
         """,
         [screeningId]
     )
-    return len(cursor.fetchall())
+    return cursor.fetchone()[0]
 
 @app.get("/tickets/")
 async def getTickets():
@@ -221,6 +229,27 @@ async def getTickets():
         tickets.append(dict(zipObj))
     return tickets
 
+@app.get("/customers/{customer_id}/tickets/")
+async def get_tickets_by_customer(customer_id : str):
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT date, time, theatre_name, movie_title, year, count() as NbrOfTickets
+        FROM   tickets
+        JOIN   screenings
+        USING  (screening_id)
+        JOIN   movies
+        USING  (imdb_key)
+        GROUP BY (screening_id)
+        HAVING username == ?
+        """, [customer_id]
+    )
+    dictKeys = ["date", "time", "theatre_name","movie_title", "year", "NbrOfTickets"]
+    tickets = []
+    for row in cursor:
+        zipObj = zip(dictKeys,row)
+        tickets.append(dict(zipObj))
+    return tickets
 
 
 
