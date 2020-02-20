@@ -74,6 +74,7 @@ async def reset_database():
 
             INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
                     ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
+            PRAGMA foreign_keys=ON;
 
             """
             
