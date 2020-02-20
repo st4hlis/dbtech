@@ -141,15 +141,26 @@ async def movies(title: str = None, year: int = None, imdbKey: str = None):
 
 @app.post("/performances")
 async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
-    cursor = connection.cursor()
-    cursor.execute(
-        """
-        INSERT INTO screenings(theatre_name, date, time, IMDB_key) VALUES
-        (?, ?, ?, ?)
-        """,
-        [theatre, date, time, imdbKey]
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO screenings(theatre_name, date, time, IMDB_key) VALUES
+            (?, ?, ?, ?)
+            """,
+            [theatre, date, time, imdbKey]
+            )
+
+        cursor.execute(
+            """
+            SELECT screening_id
+            FROM   screenings
+            WHERE  rowid = last_insert_rowid();
+            """,
         )
-    return cursor
+        return "/performances/" + str(cursor.fetchone()[0])
+    except sqlite3.Error:
+        return "No such movie or theater"
 
 @app.get("/performances/")
 async def getPerformances():
