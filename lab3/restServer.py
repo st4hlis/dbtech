@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import sqlite3
+import json
 
 connection = sqlite3.connect("movies.sqlite")
 app  = FastAPI()
@@ -10,12 +11,20 @@ def hash(msg):
 
 @app.get("/ping",status_code=200)
 async def ping():
-    return "pong"
+    return "pong".strip('\"')
 
 @app.post("/reset",status_code=200)
 async def reset_database():
     statements = """
+            PRAGMA foreign_keys=OFF;
+            DROP TABLE IF EXISTS tickets;
+            DROP TABLE IF EXISTS customers;
+            DROP TABLE IF EXISTS screenings;
             DROP TABLE IF EXISTS movies;
+            DROP TABLE IF EXISTS theatres;
+            
+           
+
             CREATE TABLE movies (
                 movie_title  TEXT,
                 year         INT,
@@ -23,7 +32,6 @@ async def reset_database():
                 PRIMARY KEY (IMDB_key)
             );
 
-            DROP TABLE IF EXISTS screenings;
             CREATE TABLE screenings (
                 screening_id    TEXT DEFAULT (lower(hex(randomblob(6)))),
                 theatre_name    TEXT,
@@ -35,14 +43,12 @@ async def reset_database():
                 FOREIGN KEY (IMDB_key) REFERENCES movies(IMDB_key)
             ); 
 
-            DROP TABLE IF EXISTS theatres;
             CREATE TABLE theatres (
                 theatre_name    TEXT,
                 capacity        INT,
                 PRIMARY KEY (theatre_name)
             );
 
-            DROP TABLE IF EXISTS customers;
             CREATE TABLE customers (
                 username        TEXT,
                 full_name       TEXT,
@@ -50,7 +56,6 @@ async def reset_database():
                 PRIMARY KEY (username)
             );
 
-            DROP TABLE IF EXISTS tickets;
             CREATE TABLE tickets (
                 ticket_id       TEXT DEFAULT (lower(hex(randomblob(6)))),
                 screening_id    TEXT,
@@ -68,7 +73,7 @@ async def reset_database():
 
 
             INSERT INTO theatres(theatre_name, capacity) VALUES  
-                    ("Kino",     10),
+                    ("Kino",     4),
                     ("Södran",   16),
                     ("Skandia", 100);
 
@@ -76,8 +81,6 @@ async def reset_database():
                     ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
 
             PRAGMA foreign_keys=ON;
-
-                    
             """
             
     statements = statements.split(";")
@@ -118,7 +121,7 @@ async def moviesByKey(imdbKey: str):
     for row in cursor:
         zipObj = zip(dictKeys, row)
         movies.append(dict(zipObj))
-    return movies
+    return dict(data=movies)
 
 @app.get("/movies")
 async def movies(title: str = None, year: int = None, imdbKey: str = None):
@@ -144,9 +147,11 @@ async def movies(title: str = None, year: int = None, imdbKey: str = None):
     for row in cursor:
         zipObj = zip(dictKeys, row)
         movies.append(dict(zipObj))
-    return movies
+        # movies.append(dict(zipObj))
+    
+    return dict(data=movies)
 
-@app.post("/performances")
+@app.post("/performances", status_code=201)
 async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
     try:
         cursor = connection.cursor()
@@ -165,11 +170,11 @@ async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
             WHERE  rowid = last_insert_rowid();
             """,
         )
-        return "/performances/" + str(cursor.fetchone()[0])
+        return "/performances/" + str(cursor.fetchone()[0]) # SHOULD RETURN RESOUCE
     except sqlite3.Error:
         return "No such movie or theater"
 
-@app.get("/performances/")
+@app.get("/performances")
 async def getPerformances():
     cursor = connection.cursor()
     cursor.execute(
@@ -178,13 +183,13 @@ async def getPerformances():
         FROM   screenings
         """
     )
-    dictKeys   = ["screeningId", "theatre", "date", "startTime", "imdbKey"]
+    dictKeys   = ["performanceId", "theater", "date", "startTime", "imdbKey"]
     screenings = []
     for row in cursor:
         zipObj = zip(dictKeys, row)
         screenings.append(dict(zipObj))
     for event in screenings:
-        event["freeSeats"] = await getFreeSeats(event["screeningId"])
+        event["remainingSeats"] = await getFreeSeats(event["performanceId"])
         cursor.execute(
             """
             SELECT movie_title, year
@@ -196,7 +201,7 @@ async def getPerformances():
         res = cursor.fetchone()
         event["title"] = res[0]
         event["year"]  = res[1]
-    return screenings
+    return dict(data=screenings)
 
 @app.get("/freeseats/{screeningId}")
 async def getFreeSeats(screeningId: str):
@@ -215,7 +220,7 @@ async def getFreeSeats(screeningId: str):
     )
     return cursor.fetchone()[0]
 
-@app.get("/tickets/")
+@app.get("/tickets")
 async def getTickets():
     cursor = connection.cursor()
     cursor.execute(
@@ -229,7 +234,7 @@ async def getTickets():
     for row in cursor:
         zipObj = zip(dictKeys, row)
         tickets.append(dict(zipObj))
-    return tickets
+    return dict(data=tickets)
 
 @app.get("/customers/{customer_id}/tickets/")
 async def get_tickets_by_customer(customer_id : str):
@@ -251,9 +256,9 @@ async def get_tickets_by_customer(customer_id : str):
     for row in cursor:
         zipObj = zip(dictKeys,row)
         tickets.append(dict(zipObj))
-    return tickets
-@app.post("/tickets")
-async def postTickets(screening_id: str, user_id: str, password: str):
+    return dict(data=tickets)
+@app.post("/tickets",status_code=201)
+async def postTickets(screening_id: str, user_id: str, password: str, responseModel=str):
     try:
         cursor = connection.cursor()
 
@@ -268,6 +273,11 @@ async def postTickets(screening_id: str, user_id: str, password: str):
 
         if hash(password) != cursor.fetchone()[0]: 
             return "Wrong password"
+
+        
+
+        if await getFreeSeats(screening_id) == 0: 
+            return "No tickets left"
         
 
         cursor.execute(
@@ -287,7 +297,7 @@ async def postTickets(screening_id: str, user_id: str, password: str):
         )
         return "/tickets/" + str(cursor.fetchone()[0])
     except sqlite3.Error:
-        return "No such movie or theater"
+        return "Error"
 
 
 
