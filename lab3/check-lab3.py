@@ -120,6 +120,7 @@ def buy_tickets(user_id):
             performance = next(p for p in response_to_dicts(r) if p['theater'] == 'Kino' and p['remainingSeats'] > 0)
             perf_id = performance['performanceId']
             seats_left = performance['remainingSeats']
+            print(str(seats_left) + " SEATS LEFT FOR " + perf_id)
             print("================================")
             print(f"Buying tickets to {performance['title']} on {performance['date']}")
             buy_url = url(f'/tickets?screening_id={perf_id}&user_id={user_id}&password=dobido')
@@ -135,7 +136,6 @@ def buy_tickets(user_id):
                     abort('Got no ticket when trying to buy available seat')
                     # now fail once:
             r = requests.post(buy_url)
-            print("NOW FAIL")
             # print(r.text)
             if not r.text.strip() == '"No tickets left"':
                 abort("Could buy too many tickets")

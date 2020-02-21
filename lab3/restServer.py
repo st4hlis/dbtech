@@ -78,7 +78,7 @@ async def reset_database():
                     ("Skandia", 100);
 
             INSERT INTO screenings(screening_id, theatre_name, date, time, IMDB_key) VALUES
-                    ("sc1", "Kino", "2020-03-02", "19:00", "tt2562232");
+                    ("sc1", "Skandia", "2020-03-02", "19:00", "tt2562232");
 
             PRAGMA foreign_keys=ON;
             """
@@ -95,11 +95,16 @@ async def reset_database():
                     ("alice",   "Alice",    ?),
                     ("bob",     "Bob",      ?);
             """, [hash("hej"),hash("dobido"),hash("whatsinaname")])
+
+    connection.commit()
+
     cursor.execute(
             """
             INSERT INTO tickets(ticket_id, screening_id, username) VALUES
                     ("tc1", "sc1", "erik")
             """)
+
+    connection.commit()
     return "OK"
 
 
@@ -163,6 +168,8 @@ async def postPerformances(imdbKey: str, theatre: str, date: str, time:str):
             [theatre, date, time, imdbKey]
             )
 
+        connection.commit()
+
         cursor.execute(
             """
             SELECT screening_id
@@ -189,6 +196,8 @@ async def getPerformances():
         zipObj = zip(dictKeys, row)
         screenings.append(dict(zipObj))
     for event in screenings:
+        print(event["performanceId"])
+        print(await getFreeSeats(event["performanceId"]))
         event["remainingSeats"] = await getFreeSeats(event["performanceId"])
         cursor.execute(
             """
@@ -208,17 +217,21 @@ async def getFreeSeats(screeningId: str):
     cursor = connection.cursor()
     cursor.execute(
         """
-        SELECT capacity - count()
+        SELECT capacity - coalesce(count(ticket_id), 0)
         FROM   screenings
-        JOIN   theatres
-        USING  (theatre_name)
-        JOIN   tickets
+        LEFT JOIN   tickets
         USING  (screening_id)
-        WHERE  screening_id == ?
+        LEFT JOIN   theatres
+        USING  (theatre_name)
+        WHERE  screening_id = ?
         """,
         [screeningId]
     )
-    return cursor.fetchone()[0]
+    res = cursor.fetchone()
+    if res is None:
+        return 0
+        
+    return res[0]
 
 @app.get("/tickets")
 async def getTickets():
@@ -236,7 +249,7 @@ async def getTickets():
         tickets.append(dict(zipObj))
     return dict(data=tickets)
 
-@app.get("/customers/{customer_id}/tickets/")
+@app.get("/customers/{customer_id}/tickets")
 async def get_tickets_by_customer(customer_id : str):
     cursor = connection.cursor()
     cursor.execute(
@@ -258,7 +271,7 @@ async def get_tickets_by_customer(customer_id : str):
         tickets.append(dict(zipObj))
     return dict(data=tickets)
 @app.post("/tickets",status_code=201)
-async def postTickets(screening_id: str, user_id: str, password: str, responseModel=str):
+async def postTickets(screening_id: str, user_id: str, password: str):
     try:
         cursor = connection.cursor()
 
@@ -287,6 +300,7 @@ async def postTickets(screening_id: str, user_id: str, password: str, responseMo
             """,
             [screening_id, user_id]
             )
+        connection.commit()
 
         cursor.execute(
             """
