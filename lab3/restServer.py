@@ -218,7 +218,8 @@ async def getFreeSeats(screeningId: str):
         """,
         [screeningId]
     )
-    return cursor.fetchone()[0]
+    res = cursor.fetchall()
+    return res[0][0] or 0
 
 @app.get("/tickets")
 async def getTickets():
@@ -257,6 +258,7 @@ async def get_tickets_by_customer(customer_id : str):
         zipObj = zip(dictKeys,row)
         tickets.append(dict(zipObj))
     return dict(data=tickets)
+
 @app.post("/tickets",status_code=201)
 async def postTickets(screening_id: str, user_id: str, password: str, responseModel=str):
     try:
@@ -274,12 +276,9 @@ async def postTickets(screening_id: str, user_id: str, password: str, responseMo
         if hash(password) != cursor.fetchone()[0]: 
             return "Wrong password"
 
-        
-
         if await getFreeSeats(screening_id) == 0: 
             return "No tickets left"
         
-
         cursor.execute(
             """
             INSERT INTO tickets(screening_id, username) VALUES
